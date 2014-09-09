@@ -8,6 +8,6 @@ This tutorial is going to take you through the process of creating a blogging sy
 
 Source files for the Tuts+ tutorial: [Get Started Building Your Blog with Parse.js](https://code.tutsplus.com/tutorials/get-started-building-your-blog-with-parsejs--cms-21997)
 
-**Available on Tuts+ ??, 2014**
+**Available on Tuts+ September 10, 2014**
 
 View the demo blog at [http://samanthaz.me/tutorial_blog/](http://samanthaz.me/tutorial_blog/)
