@@ -9,6 +9,7 @@
     <!-- Bootstrap -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link href="css/blog.css" rel="stylesheet">
+    <link href="css/bootstrap-wysihtml5-0.0.2.css" rel="stylesheet">
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -96,6 +97,23 @@
 
     <script id="welcome-tpl" type="text/x-handlebars-template">
     <h2>Welcome, {{username}}!</h2>
+    <button class="add-blog btn btn-lg btn-primary">Add a New Blog</button>
+    </script>
+
+    <script type="text/template" id="add-tpl">
+    <h2>Adding a New Blog</h2>
+
+    <form class="form-add" role="form">
+      <div class="form-group">
+        <label for="title">Title</label>
+        <input type="text" name="title" class="form-control" id="title" placeholder="Enter Your Blog Title">
+      </div>
+      <div class="form-group">
+        <label for="content">Content</label>
+        <textarea name="content" class="form-control" rows="20"></textarea>
+      </div>
+      <button class="btn btn-lg btn-primary btn-block" type="submit">Submit</button>
+    </form>
     </script>
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
@@ -106,6 +124,8 @@
     <script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/2.0.0/handlebars.min.js"></script>
     <!-- Include all compiled plugins (below), or include individual files as needed -->
     <script src="js/bootstrap.min.js"></script>
+    <script src="js/wysihtml5-0.3.0.min.js"></script>
+    <script src="js/bootstrap-wysihtml5-0.0.2.min.js"></script>
     <script src="js/admin.js"></script>
   </body>
 </html>
