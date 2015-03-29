@@ -25,6 +25,9 @@ $(function() {
 			}
 
 		}), 
+		Blogs = Blogs = Parse.Collection.extend({
+			model: Blog
+		}),
 		LoginView = Parse.View.extend({
 			template: Handlebars.compile($('#login-tpl').html()),
 			events: {
@@ -71,6 +74,17 @@ $(function() {
 			render: function(){
 				var attributes = this.model.toJSON();
 				this.$el.html(this.template(attributes));
+				var blogs = new Blogs();
+				blogs.fetch({
+					success: function(blogs) {
+						var blogsAdminView = new BlogsAdminView({ collection: blogs });
+						blogsAdminView.render();
+						$('.main-container').append(blogsAdminView.el);
+					},
+					error: function(blogs, error) {
+						console.log(error);
+					}
+				});
 			}
 		}),
 		AddBlogView = Parse.View.extend({
@@ -90,6 +104,13 @@ $(function() {
 			},
 			render: function(){
 				this.$el.html(this.template()).find('textarea').wysihtml5();
+			}
+		}),
+		BlogsAdminView = Parse.View.extend({
+			template: Handlebars.compile($('#blogs-admin-tpl').html()),
+			render: function() {
+				var collection = { blog: this.collection.toJSON() };
+				this.$el.html(this.template(collection));
 			}
 		});
 
