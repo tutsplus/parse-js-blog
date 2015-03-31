@@ -100,7 +100,7 @@
     <button class="add-blog btn btn-lg btn-primary">Add a New Blog</button>
     </script>
 
-    <script type="text/template" id="add-tpl">
+    <script id="add-tpl" type="text/x-handlebars-template">
     <h2>Adding a New Blog</h2>
 
     <form class="form-add" role="form">
@@ -115,6 +115,32 @@
       <button class="btn btn-lg btn-primary btn-block" type="submit">Submit</button>
     </form>
     </script>
+
+    <script id="blogs-admin-tpl" type="text/x-handlebars-template">
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Time</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each blog}}
+          <tr>
+            <td><a class="app-link" href="#">{{title}}</a></td>
+            <td>{{authorName}}</td>
+            <td>{{time}}</td>
+            <td>
+              <a class="app-link" href="#">Edit</a> | 
+              <a class="app-link" href="#">Delete</a>
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+  </script>
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>

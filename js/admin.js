@@ -25,6 +25,9 @@ $(function() {
 			}
 
 		}), 
+		Blogs = Blogs = Parse.Collection.extend({
+			model: Blog
+		}),
 		LoginView = Parse.View.extend({
 			template: Handlebars.compile($('#login-tpl').html()),
 			events: {
@@ -44,9 +47,7 @@ $(function() {
 				Parse.User.logIn(username, password, {
 					// If the username and password matches
 					success: function(user) {
-						var welcomeView = new WelcomeView({ model: user });
-						welcomeView.render();
-						$('.main-container').html(welcomeView.el);
+						blogRouter.navigate('admin', { trigger: true });
 					},
 					// If there is an error
 					error: function(user, error) {
@@ -64,9 +65,7 @@ $(function() {
 				'click .add-blog': 'add'
 			},
 			add: function(){
-				var addBlogView = new AddBlogView();
-				addBlogView.render();
-				$('.main-container').html(addBlogView.el);
+				blogRouter.navigate('add', { trigger: true });
 			},
 			render: function(){
 				var attributes = this.model.toJSON();
@@ -91,10 +90,79 @@ $(function() {
 			render: function(){
 				this.$el.html(this.template()).find('textarea').wysihtml5();
 			}
-		});
+		}),
+		BlogsAdminView = Parse.View.extend({
+			template: Handlebars.compile($('#blogs-admin-tpl').html()),
+			render: function() {
+				var collection = { blog: this.collection.toJSON() };
+				this.$el.html(this.template(collection));
+			}
+		}),
+		BlogRouter = Parse.Router.extend({
+		
+			// Here you can define some shared variables
+			initialize: function(options){
+				this.blogs = new Blogs();
+			},
+			
+			// This runs when we start the router. Just leave it for now.
+			start: function(){
+				Parse.history.start({pushState: true});
+				this.navigate('admin', { trigger: true });
+			},
+				
+			// This is where you map functions to urls.
+			// Just add '{{URL pattern}}': '{{function name}}'
+			routes: {
+				'admin': 'admin',
+				'login': 'login',
+				'add': 'add',
+				'edit/:url': 'edit'
+			},
+			
+			admin: function() {
+				// This is how you can current user in Parse
+				var currentUser = Parse.User.current();
 
-		// Render login view on page
-		var loginView = new LoginView();
-		loginView.render();
-		$('.main-container').html(loginView.el);
+				if ( !currentUser ) {
+					// This is how you can do url rediect in JS
+					blogRouter.navigate('login', { trigger: true });
+
+				} else {
+
+					var welcomeView = new WelcomeView({ model: currentUser });
+					welcomeView.render();
+					$('.main-container').html(welcomeView.el);
+
+					// We change it to this.blogs so it stores the content for other Views
+					// Remember to define it in BlogRouter.initialize()
+					this.blogs.fetch({
+						success: function(blogs) {
+							var blogsAdminView = new BlogsAdminView({ collection: blogs });
+							blogsAdminView.render();
+							$('.main-container').append(blogsAdminView.el);
+						},
+						error: function(blogs, error) {
+							console.log(error);
+						}
+					});
+				}
+			},
+			login: function() {
+				var loginView = new LoginView();
+				loginView.render();
+				$('.main-container').html(loginView.el);
+			},
+			add: function() {
+				var addBlogView = new AddBlogView();
+					addBlogView.render();
+					$('.main-container').html(addBlogView.el);
+			},
+			edit: function(url) {}
+
+		}),
+		blogRouter = new BlogRouter();
+		
+		blogRouter.start();
+
 });
