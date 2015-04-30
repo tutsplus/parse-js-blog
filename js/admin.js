@@ -22,8 +22,21 @@ $(function() {
 						console.log(error);
 					}
 				});
+			},
+			update: function(title, content) {
+				this.set({
+					'title': title,
+					'content': content
+				}).save(null, {
+					success: function(blog) {
+						alert('Your blog ' + blog.get('title') + ' has been saved!');
+					},
+					error: function(blog, error) {
+						console.log(blog);
+						console.log(error);
+					}
+				});
 			}
-
 		}), 
 		Blogs = Blogs = Parse.Collection.extend({
 			model: Blog
@@ -91,8 +104,31 @@ $(function() {
 				this.$el.html(this.template()).find('textarea').wysihtml5();
 			}
 		}),
+		EditBlogView = Parse.View.extend({
+			template: Handlebars.compile($('#edit-tpl').html()),
+			events: {
+				'submit .form-edit': 'submit'
+			},
+			submit: function(e) {
+				e.preventDefault();
+				var data = $(e.target).serializeArray();
+				this.model.update(data[0].value, $('textarea').val());
+			},
+			render: function(){
+				var attributes = this.model.toJSON();
+				this.$el.html(this.template(attributes));
+			}
+		}),
 		BlogsAdminView = Parse.View.extend({
 			template: Handlebars.compile($('#blogs-admin-tpl').html()),
+			events: {
+				'click .app-edit': 'edit'
+			},
+			edit: function(e){
+				e.preventDefault();
+				var href = $(e.target).attr('href');
+				blogRouter.navigate(href, { trigger: true });
+			},
 			render: function() {
 				var collection = { blog: this.collection.toJSON() };
 				this.$el.html(this.template(collection));
@@ -117,7 +153,7 @@ $(function() {
 				'admin': 'admin',
 				'login': 'login',
 				'add': 'add',
-				'edit/:url': 'edit'
+				'edit/:id': 'edit'
 			},
 			
 			admin: function() {
@@ -158,7 +194,19 @@ $(function() {
 					addBlogView.render();
 					$('.main-container').html(addBlogView.el);
 			},
-			edit: function(url) {}
+			edit: function(id) {
+				var query = new Parse.Query(Blog);
+				query.get(id, {
+					success: function(blog) {
+						var editBlogView = new EditBlogView({ model: blog });
+						editBlogView.render();
+						$('.main-container').html(editBlogView.el);
+					},
+					error: function(blog, error) {
+						console.log(error);
+					}
+				});
+			}
 
 		}),
 		blogRouter = new BlogRouter();
