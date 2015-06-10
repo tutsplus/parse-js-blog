@@ -9,6 +9,7 @@
     <!-- Bootstrap -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link href="css/blog.css" rel="stylesheet">
+    <link href="css/bootstrap-wysihtml5-0.0.2.css" rel="stylesheet">
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -21,8 +22,8 @@
     <div class="blog-masthead">
       <div class="container">
         <nav class="blog-nav">
-          <a class="blog-nav-item active" href="index.html">Home</a>
-          <a class="blog-nav-item" href="admin.html">Admin</a>
+          <a class="blog-nav-item" href="">Home</a>
+          <a class="blog-nav-item" href="#/admin">Admin</a>
         </nav>
       </div>
     </div>
@@ -86,7 +87,6 @@
     </div>
 
     <script id="blogs-tpl" type="text/x-handlebars-template">
-
     {{#each blog}}
     <div class="blog-post">
       <h2 class="blog-post-title"><a href="#">{{title}}</a></h2>
@@ -94,7 +94,59 @@
       <div>{{{content}}}</div>
     </div>
     {{/each}}
+    </script>
 
+    <script id="login-tpl" type="text/x-handlebars-template">
+    <form class="form-signin" role="form">
+      <h2 class="form-signin-heading">Please sign in</h2>
+      <input type="text" name="username" class="form-control" placeholder="Username" required="" autofocus="">
+      <input type="password" name="password" class="form-control" placeholder="Password" required="">
+      <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+    </form>
+    </script>
+
+    <script id="admin-tpl" type="text/x-handlebars-template">
+      <h2>Welcome, {{username}}!</h2>
+      <a href="#/add" class="add-blog btn btn-lg btn-primary">Add a New Blog</a>
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Time</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each blog}}
+          <tr>
+            <td><a class="app-link" href="#/edit/{{objectId}}">{{title}}</a></td>
+            <td>{{authorName}}</td>
+            <td>{{time}}</td>
+            <td>
+              <a class="app-link app-edit" href="#/edit/{{objectId}}">Edit</a> | 
+              <a class="app-link" href="#">Delete</a>
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </script>
+
+    <script id="write-tpl" type="text/x-handlebars-template">
+      <h2>{{form_title}}</h2>
+
+      <form class="form-write" role="form">
+        <div class="form-group">
+          <label for="title">Title</label>
+          <input name="title" type="text" class="form-control" id="title" value="{{title}}"></input>
+        </div>
+        <div class="form-group">
+          <label for="content">Content</label>
+          <textarea name="content" class="form-control" rows="20">{{{content}}}</textarea>
+        </div>
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Submit</button>
+      </form>
     </script>
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
@@ -105,6 +157,8 @@
     <script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/2.0.0/handlebars.min.js"></script>
     <!-- Include all compiled plugins (below), or include individual files as needed -->
     <script src="js/bootstrap.min.js"></script>
+    <script src="js/wysihtml5-0.3.0.min.js"></script>
+    <script src="js/bootstrap-wysihtml5-0.0.2.min.js"></script>
     <script src="js/blog.js"></script>
   </body>
 </html>
