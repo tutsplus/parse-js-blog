@@ -89,11 +89,19 @@
     <script id="blogs-tpl" type="text/x-handlebars-template">
     {{#each blog}}
     <div class="blog-post">
-      <h2 class="blog-post-title"><a href="#">{{title}}</a></h2>
+      <h2 class="blog-post-title"><a href="#/blog/{{objectId}}">{{title}}</a></h2>
+      <p class="blog-post-meta">At {{time}} by {{authorName}}</p>
+      <div>{{summary}}</div>
+    </div>
+    {{/each}}
+    </script>
+
+    <script id="blog-tpl" type="text/x-handlebars-template">
+    <div class="blog-post">
+      <h2 class="blog-post-title">{{title}}</h2>
       <p class="blog-post-meta">At {{time}} by {{authorName}}</p>
       <div>{{{content}}}</div>
     </div>
-    {{/each}}
     </script>
 
     <script id="login-tpl" type="text/x-handlebars-template">
@@ -108,6 +116,7 @@
     <script id="admin-tpl" type="text/x-handlebars-template">
       <h2>Welcome, {{username}}!</h2>
       <a href="#/add" class="add-blog btn btn-lg btn-primary">Add a New Blog</a>
+      <a href="#/logout" class="add-blog btn btn-lg btn-default">Logout</a>
       <table>
         <thead>
           <tr>
@@ -125,7 +134,7 @@
             <td>{{time}}</td>
             <td>
               <a class="app-link app-edit" href="#/edit/{{objectId}}">Edit</a> | 
-              <a class="app-link" href="#">Delete</a>
+              <a class="app-link" href="#/del/{{objectId}}">Delete</a>
             </td>
           </tr>
           {{/each}}
@@ -142,8 +151,12 @@
           <input name="title" type="text" class="form-control" id="title" value="{{title}}"></input>
         </div>
         <div class="form-group">
+          <label for="summary">Summary</label>
+          <textarea name="summary" class="form-control" rows="3">{{{summary}}}</textarea>
+        </div>
+        <div class="form-group">
           <label for="content">Content</label>
-          <textarea name="content" class="form-control" rows="20">{{{content}}}</textarea>
+          <textarea name="content" class="form-control write-content" rows="20">{{{content}}}</textarea>
         </div>
         <button class="btn btn-lg btn-primary btn-block" type="submit">Submit</button>
       </form>

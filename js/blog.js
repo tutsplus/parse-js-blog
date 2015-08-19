@@ -7,7 +7,7 @@ $(function() {
 
 	var $container = $('.main-container'),
 		Blog = Parse.Object.extend('Blog', {
-			update: function(title, content) {
+			update: function(data) {
 				// Only set ACL if the blog doesn't have it
 				if ( !this.get('ACL') ) {
 					// Create an ACL object to grant access to the current user 
@@ -20,8 +20,9 @@ $(function() {
 				}
 
 				this.set({
-					'title': title,
-					'content': content,
+					'title': data.title,
+					'summary': data.summary,
+					'content': data.content,
 					// Set author to the existing blog author if editing, use current user if creating
 					// The same logic goes into the following three fields
 					'author': this.get('author') || Parse.User.current(),
@@ -41,6 +42,13 @@ $(function() {
 		Blogs = Parse.Collection.extend({
 			model: Blog,
 			query: (new Parse.Query(Blog)).descending('createdAt')
+		}),
+		BlogView = Parse.View.extend({
+			template: Handlebars.compile($('#blog-tpl').html()),
+			render: function() { 
+				var attributes = this.model.toJSON();
+				this.$el.html(this.template(attributes));
+			}
 		}),
 		BlogsView = Parse.View.extend({
 			template: Handlebars.compile($('#blogs-tpl').html()),
@@ -100,7 +108,11 @@ $(function() {
 				var data = $(e.target).serializeArray();
 				// If there's no blog data, then create a new blog
 				this.model = this.model || new Blog();
-				this.model.update(data[0].value, data[1].value);
+				this.model.update({
+					title: data[0].value, 
+					summary: data[1].value,
+					content: data[2].value
+				});
 			},
 			render: function(){
 				var attributes;
@@ -113,10 +125,11 @@ $(function() {
 					attributes = {
 						form_title: 'Add a Blog',
 						title: '',
+						summary: '',
 						content: ''
 					}
 				}
-				this.$el.html(this.template(attributes)).find('textarea').wysihtml5();
+				this.$el.html(this.template(attributes)).find('.write-content').wysihtml5();
 			}
 		}),
 		BlogRouter = Parse.Router.extend({
@@ -138,10 +151,13 @@ $(function() {
 			// Just add '{{URL pattern}}': '{{function name}}'
 			routes: {
 				'': 'index',
+				'blog/:id': 'blog',
 				'admin': 'admin',
 				'login': 'login',
 				'add': 'add',
-				'edit/:id': 'edit'
+				'edit/:id': 'edit',
+				'del/:id': 'del',
+				'logout': 'logout'
 			},
 
 			index: function() {
@@ -156,7 +172,19 @@ $(function() {
 					}
 				});
 			},
-			
+			blog: function(id) {
+				var query = new Parse.Query(Blog);
+				query.get(id, {
+					success: function(blog) {
+						var blogView = new BlogView({ model: blog });
+						blogView.render();
+						$container.html(blogView.el);
+					},
+					error: function(blog, error) {
+						console.log(error);
+					}
+				});
+			},
 			admin: function() {
 
 				var currentUser = Parse.User.current();
@@ -213,6 +241,23 @@ $(function() {
 						}
 					});
 				}
+			},
+			del: function(id) {
+				if (!Parse.User.current()) {
+					this.navigate('#/login', { trigger: true });
+				} else {
+					var self = this,
+						query = new Parse.Query(Blog);
+					query.get(id).then(function(blog){
+						blog.destroy().then(function(blog){
+							self.navigate('admin', { trigger: true });
+						})
+					});
+				}
+			},
+			logout: function () {
+				Parse.User.logOut();
+				this.navigate('#/login', { trigger: true });
 			}
 		}),
 		blogRouter = new BlogRouter();
