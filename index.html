@@ -98,9 +98,44 @@
 
     <script id="blog-tpl" type="text/x-handlebars-template">
     <div class="blog-post">
+
+      <!-- Blog content -->
       <h2 class="blog-post-title">{{title}}</h2>
       <p class="blog-post-meta">At {{time}} by {{authorName}}</p>
       <div>{{{content}}}</div>
+
+      <!-- Comment Form -->
+      <h2>Leave a Comment</h2>
+      <form class="form-comment" role="form">
+        <div class="form-group">
+          <label for="comment-author-name">Name</label>
+          <input name="authorName" type="text" class="form-control" id="comment-author-name" placeholder="Your name">
+        </div>
+        <div class="form-group">
+          <label for="comment-email">Email address</label>
+          <input name="email" type="email" class="form-control" id="comment-email" placeholder="Your email">
+        </div>
+        
+        <div class="form-group">
+          <label for="comment-content">Comment</label>
+          <textarea name="content" class="form-control" rows="3" id="comment-content"></textarea>
+        </div>
+        <button type="submit" class="btn btn-default">Submit</button>
+      </form>
+
+      <!-- Comments -->
+      {{#if comment}}
+      <h2>Comments</h2>
+      <ul class="blog-comments list-unstyled">
+      {{#each comment}}
+        <li class="blog-comment">
+          <div><a href="mailto:{{email}}">{{authorName}}</a> said:</div>
+          <div>{{content}}</div>
+        </li>   
+      {{/each}}
+      </ul>
+      {{/if}}
+
     </div>
     </script>
 

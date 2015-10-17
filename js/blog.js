@@ -38,16 +38,59 @@ $(function() {
 					}
 				});
 			}
-		}), 
+		}),
+		Comment = Parse.Object.extend('Comment', {
+			add: function(data) {
+				this.set({
+					'blog': data.blog,
+					'authorName': data.authorName,
+					'email': data.email,
+					'content': data.content
+				}).save(null, {
+					success: function(comment) {
+						// Just reload the page so the author can see the comment being posted.
+						window.location.reload();
+					},
+					error: function(comment, error) {
+						console.log(blog);
+						console.log(error);
+					}
+				});
+			}
+		}),
 		Blogs = Parse.Collection.extend({
 			model: Blog,
 			query: (new Parse.Query(Blog)).descending('createdAt')
 		}),
 		BlogView = Parse.View.extend({
 			template: Handlebars.compile($('#blog-tpl').html()),
+			events: {
+				'submit .form-comment': 'submit'
+			},
+			submit: function(e) {
+				e.preventDefault();
+				var data = $(e.target).serializeArray(),
+					comment = new Comment();
+				comment.add({
+					blog: this.model,
+					authorName: data[0].value, 
+					email: data[1].value,
+					content: data[2].value
+				});
+			},
 			render: function() { 
-				var attributes = this.model.toJSON();
-				this.$el.html(this.template(attributes));
+				var self = this,
+					attributes = this.model.toJSON(),
+					// A new query to filter out all the comment in this blog
+					query = new Parse.Query(Comment).equalTo("blog", this.model).descending('createdAt'),
+					// Create a collection base on that new query
+					collection = query.collection();
+				// Fetch the collection
+				collection.fetch().then(function(comments) {
+					// Store the comments as a JSON object and add it into attributes object
+					attributes.comment = comments.toJSON();
+					self.$el.html(self.template(attributes));
+				});
 			}
 		}),
 		BlogsView = Parse.View.extend({
