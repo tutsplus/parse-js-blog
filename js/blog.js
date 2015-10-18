@@ -6,6 +6,7 @@ $(function() {
 	Parse.initialize("HC87tn6aA7c3sYx9X0vwwLVXeqHDRMYYmrUBK5zv", "3piNGGnRMhvWo8u9pKD9TDc1MJlWhlvK78Vr3fHo");
 
 	var $container = $('.main-container'),
+		$sidebar = $('.blog-sidebar'),
 		Blog = Parse.Object.extend('Blog', {
 			update: function(data) {
 				// Only set ACL if the blog doesn't have it
@@ -19,8 +20,12 @@ $(function() {
 					this.setACL(blogACL);
 				}
 
+				var category = new Category();
+				category.id = data.category;
+
 				this.set({
 					'title': data.title,
+					'category': category,
 					'summary': data.summary,
 					'content': data.content,
 					// Set author to the existing blog author if editing, use current user if creating
@@ -58,9 +63,13 @@ $(function() {
 				});
 			}
 		}),
+		Category = Parse.Object.extend('Category', {}),
 		Blogs = Parse.Collection.extend({
 			model: Blog,
 			query: (new Parse.Query(Blog)).descending('createdAt')
+		}),
+		Categories = Parse.Collection.extend({
+			model: Category
 		}),
 		BlogView = Parse.View.extend({
 			template: Handlebars.compile($('#blog-tpl').html()),
@@ -97,6 +106,13 @@ $(function() {
 			template: Handlebars.compile($('#blogs-tpl').html()),
 			render: function() { 
 				var collection = { blog: this.collection.toJSON() };
+				this.$el.html(this.template(collection));
+			}
+		}),
+		CategoriesView = Parse.View.extend({
+			template: Handlebars.compile($('#categories-tpl').html()),
+			render: function() { 
+				var collection = { category: this.collection.toJSON() };
 				this.$el.html(this.template(collection));
 			}
 		}),
@@ -152,9 +168,10 @@ $(function() {
 				// If there's no blog data, then create a new blog
 				this.model = this.model || new Blog();
 				this.model.update({
-					title: data[0].value, 
-					summary: data[1].value,
-					content: data[2].value
+					title: data[0].value,
+					category: data[1].value,
+					summary: data[2].value,
+					content: data[3].value
 				});
 			},
 			render: function(){
@@ -172,7 +189,24 @@ $(function() {
 						content: ''
 					}
 				}
-				this.$el.html(this.template(attributes)).find('.write-content').wysihtml5();
+
+				var self = this,
+					categories = new Categories();
+
+				categories.fetch().then(function(categories){
+					attributes.categories = categories.toJSON();
+					// Get current selected category
+					if (attributes.category) {
+						attributes.categories.forEach(function(category, i){
+							if (category == attributes.category) {
+								attributes.categories[i].selected = true;
+							}
+						});
+					}
+					console.log(attributes);
+					self.$el.html(self.template(attributes)).find('.write-content').wysihtml5();
+				});
+				
 			}
 		}),
 		BlogRouter = Parse.Router.extend({
@@ -180,6 +214,7 @@ $(function() {
 			// Here you can define some shared variables
 			initialize: function(options){
 				this.blogs = new Blogs();
+				this.categories = new Categories();
 			},
 			
 			// This runs when we start the router. Just leave it for now.
@@ -187,6 +222,11 @@ $(function() {
 				Parse.history.start({
 					// put in your directory below
 					root: '/tutorial_blog/'
+				});
+				this.categories.fetch().then(function(categories){
+					var categoriesView = new CategoriesView({ collection: categories });
+					categoriesView.render();
+					$('.blog-sidebar').html(categoriesView.el);
 				});
 			},
 				
@@ -200,7 +240,8 @@ $(function() {
 				'add': 'add',
 				'edit/:id': 'edit',
 				'del/:id': 'del',
-				'logout': 'logout'
+				'logout': 'logout',
+				'category/:id': 'category'
 			},
 
 			index: function() {
@@ -211,6 +252,27 @@ $(function() {
 						$container.html(blogsView.el);
 					},
 					error: function(blogs, error) {
+						console.log(error);
+					}
+				});
+			},
+			category: function(id) {
+				// Get the current category object
+				var query = new Parse.Query(Category);
+				query.get(id, {
+					success: function(category) {
+						// Query to get the blogs under that category
+						var blogQuery = new Parse.Query(Blog).equalTo("category", category).descending('createdAt');
+						collection = blogQuery.collection();
+						// Fetch blogs
+						collection.fetch().then(function(blogs){
+							// Render blogs
+							var blogsView = new BlogsView({ collection: blogs });
+							blogsView.render();
+							$container.html(blogsView.el);
+						});
+					},
+					error: function(category, error) {
 						console.log(error);
 					}
 				});
