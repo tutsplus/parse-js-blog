@@ -6,8 +6,9 @@ $(function() {
 	Parse.initialize("HC87tn6aA7c3sYx9X0vwwLVXeqHDRMYYmrUBK5zv", "3piNGGnRMhvWo8u9pKD9TDc1MJlWhlvK78Vr3fHo");
 
 	var $container = $('.main-container'),
+		$sidebar = $('.blog-sidebar'),
 		Blog = Parse.Object.extend('Blog', {
-			update: function(title, content) {
+			update: function(data) {
 				// Only set ACL if the blog doesn't have it
 				if ( !this.get('ACL') ) {
 					// Create an ACL object to grant access to the current user 
@@ -19,9 +20,14 @@ $(function() {
 					this.setACL(blogACL);
 				}
 
+				var category = new Category();
+				category.id = data.category;
+
 				this.set({
-					'title': title,
-					'content': content,
+					'title': data.title,
+					'category': category,
+					'summary': data.summary,
+					'content': data.content,
 					// Set author to the existing blog author if editing, use current user if creating
 					// The same logic goes into the following three fields
 					'author': this.get('author') || Parse.User.current(),
@@ -37,15 +43,76 @@ $(function() {
 					}
 				});
 			}
-		}), 
+		}),
+		Comment = Parse.Object.extend('Comment', {
+			add: function(data) {
+				this.set({
+					'blog': data.blog,
+					'authorName': data.authorName,
+					'email': data.email,
+					'content': data.content
+				}).save(null, {
+					success: function(comment) {
+						// Just reload the page so the author can see the comment being posted.
+						window.location.reload();
+					},
+					error: function(comment, error) {
+						console.log(blog);
+						console.log(error);
+					}
+				});
+			}
+		}),
+		Category = Parse.Object.extend('Category', {}),
 		Blogs = Parse.Collection.extend({
 			model: Blog,
 			query: (new Parse.Query(Blog)).descending('createdAt')
+		}),
+		Categories = Parse.Collection.extend({
+			model: Category
+		}),
+		BlogView = Parse.View.extend({
+			template: Handlebars.compile($('#blog-tpl').html()),
+			events: {
+				'submit .form-comment': 'submit'
+			},
+			submit: function(e) {
+				e.preventDefault();
+				var data = $(e.target).serializeArray(),
+					comment = new Comment();
+				comment.add({
+					blog: this.model,
+					authorName: data[0].value, 
+					email: data[1].value,
+					content: data[2].value
+				});
+			},
+			render: function() { 
+				var self = this,
+					attributes = this.model.toJSON(),
+					// A new query to filter out all the comment in this blog
+					query = new Parse.Query(Comment).equalTo("blog", this.model).descending('createdAt'),
+					// Create a collection base on that new query
+					collection = query.collection();
+				// Fetch the collection
+				collection.fetch().then(function(comments) {
+					// Store the comments as a JSON object and add it into attributes object
+					attributes.comment = comments.toJSON();
+					self.$el.html(self.template(attributes));
+				});
+			}
 		}),
 		BlogsView = Parse.View.extend({
 			template: Handlebars.compile($('#blogs-tpl').html()),
 			render: function() { 
 				var collection = { blog: this.collection.toJSON() };
+				this.$el.html(this.template(collection));
+			}
+		}),
+		CategoriesView = Parse.View.extend({
+			template: Handlebars.compile($('#categories-tpl').html()),
+			render: function() { 
+				var collection = { category: this.collection.toJSON() };
 				this.$el.html(this.template(collection));
 			}
 		}),
@@ -100,7 +167,12 @@ $(function() {
 				var data = $(e.target).serializeArray();
 				// If there's no blog data, then create a new blog
 				this.model = this.model || new Blog();
-				this.model.update(data[0].value, data[1].value);
+				this.model.update({
+					title: data[0].value,
+					category: data[1].value,
+					summary: data[2].value,
+					content: data[3].value
+				});
 			},
 			render: function(){
 				var attributes;
@@ -113,10 +185,28 @@ $(function() {
 					attributes = {
 						form_title: 'Add a Blog',
 						title: '',
+						summary: '',
 						content: ''
 					}
 				}
-				this.$el.html(this.template(attributes)).find('textarea').wysihtml5();
+
+				var self = this,
+					categories = new Categories();
+
+				categories.fetch().then(function(categories){
+					attributes.categories = categories.toJSON();
+					// Get current selected category
+					if (attributes.category) {
+						attributes.categories.forEach(function(category, i){
+							if (category == attributes.category) {
+								attributes.categories[i].selected = true;
+							}
+						});
+					}
+					console.log(attributes);
+					self.$el.html(self.template(attributes)).find('.write-content').wysihtml5();
+				});
+				
 			}
 		}),
 		BlogRouter = Parse.Router.extend({
@@ -124,6 +214,7 @@ $(function() {
 			// Here you can define some shared variables
 			initialize: function(options){
 				this.blogs = new Blogs();
+				this.categories = new Categories();
 			},
 			
 			// This runs when we start the router. Just leave it for now.
@@ -132,16 +223,25 @@ $(function() {
 					// put in your directory below
 					root: '/tutorial_blog/'
 				});
+				this.categories.fetch().then(function(categories){
+					var categoriesView = new CategoriesView({ collection: categories });
+					categoriesView.render();
+					$('.blog-sidebar').html(categoriesView.el);
+				});
 			},
 				
 			// This is where you map functions to urls.
 			// Just add '{{URL pattern}}': '{{function name}}'
 			routes: {
 				'': 'index',
+				'blog/:id': 'blog',
 				'admin': 'admin',
 				'login': 'login',
 				'add': 'add',
-				'edit/:id': 'edit'
+				'edit/:id': 'edit',
+				'del/:id': 'del',
+				'logout': 'logout',
+				'category/:id': 'category'
 			},
 
 			index: function() {
@@ -156,7 +256,40 @@ $(function() {
 					}
 				});
 			},
-			
+			category: function(id) {
+				// Get the current category object
+				var query = new Parse.Query(Category);
+				query.get(id, {
+					success: function(category) {
+						// Query to get the blogs under that category
+						var blogQuery = new Parse.Query(Blog).equalTo("category", category).descending('createdAt');
+						collection = blogQuery.collection();
+						// Fetch blogs
+						collection.fetch().then(function(blogs){
+							// Render blogs
+							var blogsView = new BlogsView({ collection: blogs });
+							blogsView.render();
+							$container.html(blogsView.el);
+						});
+					},
+					error: function(category, error) {
+						console.log(error);
+					}
+				});
+			},
+			blog: function(id) {
+				var query = new Parse.Query(Blog);
+				query.get(id, {
+					success: function(blog) {
+						var blogView = new BlogView({ model: blog });
+						blogView.render();
+						$container.html(blogView.el);
+					},
+					error: function(blog, error) {
+						console.log(error);
+					}
+				});
+			},
 			admin: function() {
 
 				var currentUser = Parse.User.current();
@@ -213,6 +346,23 @@ $(function() {
 						}
 					});
 				}
+			},
+			del: function(id) {
+				if (!Parse.User.current()) {
+					this.navigate('#/login', { trigger: true });
+				} else {
+					var self = this,
+						query = new Parse.Query(Blog);
+					query.get(id).then(function(blog){
+						blog.destroy().then(function(blog){
+							self.navigate('admin', { trigger: true });
+						})
+					});
+				}
+			},
+			logout: function () {
+				Parse.User.logOut();
+				this.navigate('#/login', { trigger: true });
 			}
 		}),
 		blogRouter = new BlogRouter();
