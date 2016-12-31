@@ -61,9 +61,9 @@
     <script id="blogs-tpl" type="text/x-handlebars-template">
     {{#each blog}}
     <div class="blog-post">
-      <h2 class="blog-post-title"><a href="#/blog/{{objectId}}">{{title}}</a></h2>
-      <p class="blog-post-meta">At {{time}} by {{authorName}}</p>
-      <div>{{summary}}</div>
+      <h2 class="blog-post-title"><a href="#/blog/{{id}}">{{attributes.title}}</a></h2>
+      <p class="blog-post-meta">At {{attributes.time}} by {{attributes.authorName}}</p>
+      <div>{{attributes.summary}}</div>
     </div>
     {{/each}}
     </script>
@@ -73,7 +73,7 @@
       <h4>Categories</h4>
       <ol class="list-unstyled">
         {{#each category}}
-        <li><a href="#/category/{{objectId}}">{{name}}</a></li>
+        <li><a href="#/category/{{id}}">{{attributes.name}}</a></li>
         {{/each}}
       </ol>
     </div>
@@ -83,9 +83,9 @@
     <div class="blog-post">
 
       <!-- Blog content -->
-      <h2 class="blog-post-title">{{title}}</h2>
-      <p class="blog-post-meta">At {{time}} by {{authorName}}</p>
-      <div>{{{content}}}</div>
+      <h2 class="blog-post-title">{{blog.attributes.title}}</h2>
+      <p class="blog-post-meta">At {{blog.attributes.time}} by {{blog.attributes.authorName}}</p>
+      <div>{{{blog.attributes.content}}}</div>
 
       <!-- Comment Form -->
       <h2>Leave a Comment</h2>
@@ -112,8 +112,8 @@
       <ul class="blog-comments list-unstyled">
       {{#each comment}}
         <li class="blog-comment">
-          <div><a href="mailto:{{email}}">{{authorName}}</a> said:</div>
-          <div>{{content}}</div>
+          <div><a href="mailto:{{attributes.email}}">{{attributes.authorName}}</a> said:</div>
+          <div>{{attributes.content}}</div>
         </li>   
       {{/each}}
       </ul>
@@ -132,7 +132,7 @@
     </script>
 
     <script id="admin-tpl" type="text/x-handlebars-template">
-      <h2>Welcome, {{username}}!</h2>
+      <h2>Welcome, {{user.attributes.username}}!</h2>
       <a href="#/add" class="add-blog btn btn-lg btn-primary">Add a New Blog</a>
       <a href="#/logout" class="add-blog btn btn-lg btn-default">Logout</a>
       <table>
@@ -147,12 +147,12 @@
         <tbody>
           {{#each blog}}
           <tr>
-            <td><a class="app-link" href="#/edit/{{objectId}}">{{title}}</a></td>
-            <td>{{authorName}}</td>
-            <td>{{time}}</td>
+            <td><a class="app-link" href="#/edit/{{id}}">{{attributes.title}}</a></td>
+            <td>{{attributes.authorName}}</td>
+            <td>{{attributes.time}}</td>
             <td>
-              <a class="app-link app-edit" href="#/edit/{{objectId}}">Edit</a> | 
-              <a class="app-link" href="#/del/{{objectId}}">Delete</a>
+              <a class="app-link app-edit" href="#/edit/{{id}}">Edit</a> | 
+              <a class="app-link" href="#/del/{{id}}">Delete</a>
             </td>
           </tr>
           {{/each}}
@@ -166,32 +166,36 @@
       <form class="form-write" role="form">
         <div class="form-group">
           <label for="title">Title</label>
-          <input name="title" type="text" class="form-control" id="title" value="{{title}}"></input>
+          <input name="title" type="text" class="form-control" id="title" value="{{blog.attributes.title}}"></input>
         </div>
         <div class="form-group">
           <label for="category">Category</label>
           <select name="category" class="form-control">
-            {{#each categories}}
-            <option value="{{objectId}}" {{#if selected}}selected{{/if}}>{{name}}</option>
+            {{#each category}}
+            <option value="{{id}}" {{#if selected}}selected{{/if}}>{{attributes.name}}</option>
             {{/each}}
           </select>
         </div>
         <div class="form-group">
           <label for="summary">Summary</label>
-          <textarea name="summary" class="form-control" rows="3">{{{summary}}}</textarea>
+          <textarea name="summary" class="form-control" rows="3">{{{blog.attributes.summary}}}</textarea>
         </div>
         <div class="form-group">
           <label for="content">Content</label>
-          <textarea name="content" class="form-control write-content" rows="20">{{{content}}}</textarea>
+          <textarea name="content" class="form-control write-content" rows="20">{{{blog.attributes.content}}}</textarea>
         </div>
         <button class="btn btn-lg btn-primary btn-block" type="submit">Submit</button>
       </form>
     </script>
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <!-- Lodash -->
+    <script src="//cdn.jsdelivr.net/lodash/4.17.3/lodash.min.js"></script>
+    <!-- Backbone.js -->
+    <script src="//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.3.3/backbone-min.js"></script>
     <!-- Parse.js -->
-    <script src="//www.parsecdn.com/js/parse-1.2.19.min.js"></script>
+    <script src="//npmcdn.com/parse/dist/parse.min.js"></script>
     <!-- Handlebars.js -->
     <script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/2.0.0/handlebars.min.js"></script>
     <!-- Include all compiled plugins (below), or include individual files as needed -->

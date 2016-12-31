@@ -3,7 +3,8 @@ $(function() {
 	Parse.$ = jQuery;
 
 	// Replace this line with the one on your Quickstart Guide Page
-	Parse.initialize("HC87tn6aA7c3sYx9X0vwwLVXeqHDRMYYmrUBK5zv", "3piNGGnRMhvWo8u9pKD9TDc1MJlWhlvK78Vr3fHo");
+	Parse.initialize("moyicat-parse-blog-git");
+	Parse.serverURL = 'https://moyicat-parse-blog-git.herokuapp.com/parse';
 
 	var $container = $('.main-container'),
 		$sidebar = $('.blog-sidebar'),
@@ -64,14 +65,7 @@ $(function() {
 			}
 		}),
 		Category = Parse.Object.extend('Category', {}),
-		Blogs = Parse.Collection.extend({
-			model: Blog,
-			query: (new Parse.Query(Blog)).descending('createdAt')
-		}),
-		Categories = Parse.Collection.extend({
-			model: Category
-		}),
-		BlogView = Parse.View.extend({
+		BlogView = Backbone.View.extend({
 			template: Handlebars.compile($('#blog-tpl').html()),
 			events: {
 				'submit .form-comment': 'submit'
@@ -88,35 +82,27 @@ $(function() {
 				});
 			},
 			render: function() { 
-				var self = this,
-					attributes = this.model.toJSON(),
-					// A new query to filter out all the comment in this blog
-					query = new Parse.Query(Comment).equalTo("blog", this.model).descending('createdAt'),
-					// Create a collection base on that new query
-					collection = query.collection();
-				// Fetch the collection
-				collection.fetch().then(function(comments) {
-					// Store the comments as a JSON object and add it into attributes object
-					attributes.comment = comments.toJSON();
-					self.$el.html(self.template(attributes));
-				});
+				this.$el.html(this.template({
+					blog: this.model,
+					comment: this.collection
+				}));
 			}
 		}),
-		BlogsView = Parse.View.extend({
+		BlogsView = Backbone.View.extend({
 			template: Handlebars.compile($('#blogs-tpl').html()),
 			render: function() { 
-				var collection = { blog: this.collection.toJSON() };
+				var collection = { blog: this.collection };
 				this.$el.html(this.template(collection));
 			}
 		}),
-		CategoriesView = Parse.View.extend({
+		CategoriesView = Backbone.View.extend({
 			template: Handlebars.compile($('#categories-tpl').html()),
-			render: function() { 
-				var collection = { category: this.collection.toJSON() };
+			render: function() {
+				var collection = { category: this.collection };
 				this.$el.html(this.template(collection));
 			}
 		}),
-		LoginView = Parse.View.extend({
+		LoginView = Backbone.View.extend({
 			template: Handlebars.compile($('#login-tpl').html()),
 			events: {
 				'submit .form-signin': 'login'
@@ -147,17 +133,16 @@ $(function() {
 				this.$el.html(this.template());
 			}
 		}),
-		BlogsAdminView = Parse.View.extend({
+		BlogsAdminView = Backbone.View.extend({
 			template: Handlebars.compile($('#admin-tpl').html()),
 			render: function() {
-				var collection = { 
-					username: this.options.username,
-					blog: this.collection.toJSON()
-				};
-				this.$el.html(this.template(collection));
+				this.$el.html(this.template({
+					user: this.model,
+					blog: this.collection
+				}));
 			}
 		}),
-		WriteBlogView = Parse.View.extend({
+		WriteBlogView = Backbone.View.extend({
 			template: Handlebars.compile($('#write-tpl').html()),
 			events: {
 				'submit .form-write': 'submit'
@@ -175,55 +160,47 @@ $(function() {
 				});
 			},
 			render: function(){
-				var attributes;
+				var self = this;
+
 				// If the user is editing a blog, that means there will be a blog set as this.model
 				// therefore, we use this logic to render different titles and pass in empty strings
-				if (this.model) {
-					attributes = this.model.toJSON();
-					attributes.form_title = 'Edit Blog';
-				} else {
-					attributes = {
-						form_title: 'Add a Blog',
-						title: '',
-						summary: '',
-						content: ''
-					}
+
+				var blog = self.model || {};
+				var form_title = self.model ? 'Edit Blog' : 'Add a Blog';
+
+
+				if (self.model) {
+					_.each(self.collection, function(category){
+						if (category.id === self.model.attributes.category.id) {
+							category.selected = true;
+						}
+					});
 				}
 
-				var self = this,
-					categories = new Categories();
-
-				categories.fetch().then(function(categories){
-					attributes.categories = categories.toJSON();
-					// Get current selected category
-					if (attributes.category) {
-						attributes.categories.forEach(function(category, i){
-							if (category == attributes.category) {
-								attributes.categories[i].selected = true;
-							}
-						});
-					}
-					console.log(attributes);
-					self.$el.html(self.template(attributes)).find('.write-content').wysihtml5();
-				});
+				self.$el.html(self.template({
+					form_title: form_title,
+					blog: blog,
+					category: self.collection
+				})).find('.write-content').wysihtml5();
 				
 			}
 		}),
-		BlogRouter = Parse.Router.extend({
+		BlogRouter = Backbone.Router.extend({
 		
 			// Here you can define some shared variables
 			initialize: function(options){
-				this.blogs = new Blogs();
-				this.categories = new Categories();
+				this.blogs = new Parse.Query(Blog);
+				this.categories = new Parse.Query(Category);
 			},
 			
 			// This runs when we start the router. Just leave it for now.
 			start: function(){
-				Parse.history.start({
+				Backbone.history.start({
 					// put in your directory below
 					root: '/tutorial_blog/'
 				});
-				this.categories.fetch().then(function(categories){
+
+				this.categories.find().then(function(categories) {
 					var categoriesView = new CategoriesView({ collection: categories });
 					categoriesView.render();
 					$('.blog-sidebar').html(categoriesView.el);
@@ -245,7 +222,7 @@ $(function() {
 			},
 
 			index: function() {
-				this.blogs.fetch({
+				this.blogs.find({
 					success: function(blogs) {
 						var blogsView = new BlogsView({ collection: blogs });
 						blogsView.render();
@@ -262,10 +239,9 @@ $(function() {
 				query.get(id, {
 					success: function(category) {
 						// Query to get the blogs under that category
-						var blogQuery = new Parse.Query(Blog).equalTo("category", category).descending('createdAt');
-						collection = blogQuery.collection();
+						var collection = new Parse.Query(Blog).equalTo("category", category).descending('createdAt');
 						// Fetch blogs
-						collection.fetch().then(function(blogs){
+						collection.find().then(function(blogs){
 							// Render blogs
 							var blogsView = new BlogsView({ collection: blogs });
 							blogsView.render();
@@ -281,9 +257,15 @@ $(function() {
 				var query = new Parse.Query(Blog);
 				query.get(id, {
 					success: function(blog) {
-						var blogView = new BlogView({ model: blog });
-						blogView.render();
-						$container.html(blogView.el);
+						var collection = new Parse.Query(Comment).equalTo("blog", blog).descending("createdAt");
+						collection.find().then(function(comments){
+							var blogView = new BlogView({ 
+								model: blog,
+								collection: comments,
+							});
+							blogView.render();
+							$container.html(blogView.el);
+						});
 					},
 					error: function(blog, error) {
 						console.log(error);
@@ -298,12 +280,12 @@ $(function() {
 				if (!currentUser) {
 					this.navigate('#/login', { trigger: true });
 				} else {
-					this.blogs.fetch({
+					this.blogs.equalTo("author", currentUser).find({
 						success: function(blogs) {
 							var blogsAdminView = new BlogsAdminView({ 
 								// Pass in current username to be rendered in #admin-tpl
-								username: currentUser.get('username'),
-								collection: blogs 
+								model: currentUser,
+								collection: blogs
 							});
 							blogsAdminView.render();
 							$container.html(blogsAdminView.el);
@@ -320,26 +302,37 @@ $(function() {
 				$container.html(loginView.el);
 			},
 			add: function() {
+				var self = this;
 				// Check login
 				if (!Parse.User.current()) {
 					this.navigate('#/login', { trigger: true });
 				} else {
-					var writeBlogView = new WriteBlogView();
-					writeBlogView.render();
-					$container.html(writeBlogView.el);
+					self.categories.find().then(function(categories) {
+						var writeBlogView = new WriteBlogView({ 
+								collection: categories
+							});
+						writeBlogView.render();
+						$container.html(writeBlogView.el);
+					});
 				}
 			},
 			edit: function(id) {
+				var self = this;
 				// Check login
 				if (!Parse.User.current()) {
-					this.navigate('#/login', { trigger: true });
+					self.navigate('#/login', { trigger: true });
 				} else {
 					var query = new Parse.Query(Blog);
 					query.get(id, {
 						success: function(blog) {
-							var writeBlogView = new WriteBlogView({ model: blog });
-							writeBlogView.render();
-							$container.html(writeBlogView.el);
+							self.categories.find().then(function(categories) {
+								var writeBlogView = new WriteBlogView({ 
+									model: blog,
+									collection: categories
+								});
+								writeBlogView.render();
+								$container.html(writeBlogView.el);
+							});
 						},
 						error: function(blog, error) {
 							console.log(error);
@@ -366,7 +359,7 @@ $(function() {
 			}
 		}),
 		blogRouter = new BlogRouter();
-		
+
 		blogRouter.start();
 
 });
